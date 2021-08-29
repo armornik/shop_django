@@ -1,6 +1,12 @@
 {% extends "adminapp/base.html" %}
 {% load static %}
 
+{% block js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="{% static 'ordersapp/script.js' %}"></script>
+    <script src="{% static 'ordersapp/jquery.formset.js' %}"></script>
+{% endblock %
+
 {% block content %}
    {% include 'ordersapp/includes/inc_order_summary.html' %}
    <div class="order_form">
@@ -30,7 +36,15 @@
                                    {% endfor %}
                                {% endif %}
                                {{ field.errors.as_ul }}
-                               {{ field }}
+                               {% if field.name != 'price' %}
+                                   {{ field }}
+                               {% else %}
+                                   {% if field.value %}
+                                       <span class="orderitems-{{forloop.parentloop.counter0}}-price">
+                                         {{ field.value }}
+                                       </span> руб
+                                   {% endif %}
+                               {% endif %}
                            </td>
                        {% endfor %}
                    </tr>
