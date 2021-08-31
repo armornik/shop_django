@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import environ
+import dj-database-url
 
 
 env = environ.Env(
@@ -206,3 +207,8 @@ EMAIL_FILE_PATH = 'tmp/email-messages/'
 SOCIAL_AUTH_VK_OAUTH2_KEY = env('SOCIAL_AUTH_VK_OAUTH2_KEY')
 SOCIAL_AUTH_VK_OAUTH2_SECRET = env('SOCIAL_AUTH_VK_OAUTH2_SECRET')
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+db_from_env = dj-database-url.config()
+DATABASE['default'].update(db_from_env)
