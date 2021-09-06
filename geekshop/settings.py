@@ -17,7 +17,7 @@ import environ
 
 env = environ.Env(
     # set casting, default value
-    # DEBUG=(bool, False)
+    DEBUG=(bool, False)
 )
 # reading .env file
 environ.Env.read_env()
@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     # for profiling and tests
     'debug_toolbar',
     'template_profiler_panel',
+    'django_extensions',
 ]
 
 # for profiling and tests
