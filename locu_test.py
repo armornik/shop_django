@@ -2,11 +2,11 @@ from locust import HttpUser, TaskSet, task
 
 
 def login(l):
-    l.client.post("auth/login/", {"username":"admin", "password":"123"})
+    l.client.post("auth/login/", {"username": "admin", "password": "admin"})
 
 
 def logout(l):
-    l.client.post("auth/logout/", {"username":"admin", "password":"123"})
+    l.client.post("auth/logout/", {"username": "admin", "password": "admin"})
 
 
 def index(l):
@@ -22,7 +22,7 @@ def products(l):
 
 @task
 class UserBehavior(TaskSet):
-    tasks = {index: 1, products: 1}
+    tasks = {index: 1, products: 2}
 
     def on_start(self):
         login(self)
@@ -35,4 +35,4 @@ class UserBehavior(TaskSet):
 class WebsiteUser(HttpUser):
     task_set = UserBehavior
     min_wait = 500
-    max_wait = 10000
+    max_wait = 100000

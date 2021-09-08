@@ -122,6 +122,9 @@ SOCIAL_AUTH_PIPELINE = (
 )
 
 MIDDLEWARE = [
+    # FOR CACHE SITE
+    'django.middleware.cache.CacheMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -131,7 +134,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # FOR CACHE SITE
+    'django.middleware.cache.FetchFromCacheMiddleware',
 ]
+
+CACHE_MIDDLEWARE_SECONDS = '300'
 
 ROOT_URLCONF = 'geekshop.urls'
 
@@ -246,3 +253,28 @@ EMAIL_FILE_PATH = 'tmp/email-messages/'
 SOCIAL_AUTH_VK_OAUTH2_KEY = env('SOCIAL_AUTH_VK_OAUTH2_KEY')
 SOCIAL_AUTH_VK_OAUTH2_SECRET = env('SOCIAL_AUTH_VK_OAUTH2_SECRET')
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
+
+# for caching
+if os.name == 'nt':
+    CACHE_MIDDLEWARE_ALIAS = 'default'
+    CACHE_MIDDLEWARE_SECONDS = 60
+    CACHE_MIDDLEWARE_KEY_PREFIX = 'shop'
+
+    CACHES = {
+       'default': {
+           'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+           'LOCATION': '127.0.0.1:11211',
+       }
+    }
+
+    # cache table
+    # CACHES = {
+    #     'default': {
+    #         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+    #         'LOCATION': 'ShopUser',
+    #     }
+    # }
+
+LOW_CACHE = True
+
+# CACHE_BACKENDS = 'memcached://127.0.0.1:11211'
