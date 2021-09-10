@@ -1,14 +1,14 @@
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
-
-from basketapp.models import Basket
-from mainapp.models import Product
-
 from django.contrib.auth.decorators import login_required
 
 from django.template.loader import render_to_string
 from django.http import JsonResponse
+from django.db.models import F, Q
+
+from basketapp.models import Basket
+from mainapp.models import Product
 
 
 @login_required
@@ -29,13 +29,24 @@ def basket_add(request, pk):
 
     product = get_object_or_404(Product, pk=pk)
 
+    # Фильтрация по обоим
     basket = Basket.objects.filter(user=request.user, product=product).first()
+    # # Фильтрация или
+    # basket = Basket.objects.filter(Q(user=request.user) | Q(product=product)).first()
 
     if not basket:
         basket = Basket(user=request.user, product=product)
 
     basket.quantity += 1
     basket.save()
+
+    # # Пример использования F-объекта
+    # old_basket_item = Basket.get_product(user=request.user, product=product)
+    # if old_basket_item:
+    #     old_basket_item[0].quantity = F('quantity') + 1
+    #     old_basket_item[0].save()
+    # else:
+    #     pass
 
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
