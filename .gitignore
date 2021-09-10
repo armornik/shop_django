@@ -141,3 +141,5 @@ cython_debug/
 tmp/
 
 .idea
+
+test_db.json
