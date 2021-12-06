@@ -1,14 +1,18 @@
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse, reverse_lazy
+from django.db.models.signals import pre_save
+from django.db.models import F
+from django.db import connection
+from django.contrib.auth.decorators import user_passes_test
+from django.views.generic import ListView, CreateView, DetailView, DeleteView, UpdateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.dispatch import receiver
 
-from adminapp.froms import ProductEditForm
-from authapp.forms import ShopUserRegisterForm
+from adminapp.forms import ProductEditForm, ProductCategoryEditForm
+from authapp.forms import ShopUserRegisterForm, ShopUserEditForm
 from authapp.models import ShopUser
 from mainapp.models import ProductCategory, Product
-from django.contrib.auth.decorators import user_passes_test
-from django.views.generic import ListView, CreateView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 # def users(request):
@@ -22,6 +26,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 #     }
 #
 #     return render(request, 'adminapp/users.html', context)
+
 
 class UserListView(LoginRequiredMixin, ListView):
     model = ShopUser
@@ -58,6 +63,7 @@ class UserListView(LoginRequiredMixin, ListView):
 #
 #     return render(request, 'adminapp/user_update.html', context)
 
+
 class UserCreateView(LoginRequiredMixin, CreateView):
     model = ShopUser
     template_name = 'adminapp/user_update.html'
@@ -78,13 +84,13 @@ def user_update(request, pk):
     edit_user = get_object_or_404(ShopUser, pk=pk)
 
     if request.method == 'POST':
-        edit_form = ShopUserAdminEditForm(request.POST, request.FILES, instance=edit_user)
+        edit_form = ShopUserEditForm(request.POST, request.FILES, instance=edit_user)
         if edit_form.is_valid():
             edit_form.save()
 
             return HttpResponseRedirect(reverse('admin_staff:users'))
     else:
-        edit_form = ShopUserAdminEditForm(instance=edit_user)
+        edit_form = ShopUserEditForm(instance=edit_user)
 
     context = {
         'title': title,
@@ -130,12 +136,44 @@ def category_create(request):
     pass
 
 
-def category_update(request, pk):
-    pass
+class ProductCategoryUpdateView(UpdateView):
+    model = ProductCategory
+    template_name = 'adminapp/category_update.html'
+    success_url = reverse_lazy('admin_staff:categories')
+    form_class = ProductCategoryEditForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'категории/редактирование'
+        return context
+
+    def form_valid(self, form):
+        if 'discount' in form.cleaned_data:
+            discount = form.cleaned_data['discount']
+            if discount:
+                self.object.product_set.update(price=F('price') * (1 - discount / 100))
+                db_profile_by_type(self.__class__, 'UPDATE', connection.queries)
+
+        return super().form_valid(form)
+
+# def category_delete(request, pk):
+#     pass
 
 
-def category_delete(request, pk):
-    pass
+class ProductCategoryDelete(DeleteView):
+    """
+    Контроллер для удаления категорий.
+    Медот delete переопределен, чтобы не удалять объекты, а делать их не активными
+    """
+    model = ProductCategory
+    template_name = 'adminapp/productcategory_confirm_delete.html'
+    success_url = reverse_lazy('admin_staff:users')
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.is_active = False
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
 
 
 def products(request, pk):
@@ -151,7 +189,6 @@ def products(request, pk):
     }
 
     return render(request, 'adminapp/products.html', context)
-
 
 
 def product_create(request, pk):
@@ -220,3 +257,24 @@ def product_delete(request, pk):
         product.is_active = False if product.is_active else True
         product.save()
         return HttpResponseRedirect(reverse('adminapp:products', args=[product.category.pk]))
+
+
+def db_profile_by_type(prefix, type, queries):
+    """
+    Функция создаёт список запросов в базу данных (для профилирования)
+    """
+    update_queries = list(filter(lambda x: type in x['sql'], queries))
+    print(f'db_profile {type} for {prefix}:')
+    [print(query['sql']) for query in update_queries]
+
+
+@receiver(pre_save, sender=ProductCategory)
+def product_is_active_update_productcategory_save(sender, instance, **kwargs):
+    if instance.pk:
+        if instance.is_active:
+            # instance.product_set - выбираем все продукты из категории, если категория активаная - все продукты актив
+            instance.product_set.update(is_active=True)
+        else:
+            instance.product_set.update(is_active=False)
+
+        db_profile_by_type(sender, 'UPDATE', connection.queries)
